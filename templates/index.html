@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyAadhaar - Aadhaar Card QR Extractor & Reconciliation Engine</title>
+    <style>
+        :root {
+            --primary: #ff9933;
+            --primary-dark: #e07d1a;
+            --secondary: #138808;
+            --navy: #000080;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --code-bg: #0f172a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            background: #f1f5f9;
+            color: var(--text-main);
+            min-height: 100vh;
+            padding-bottom: 40px;
+        }
+
+        /* Top Navbar */
+        .navbar {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            padding: 14px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-badge {
+            background: linear-gradient(135deg, #ff9933, #ffffff, #138808);
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #cbd5e1;
+            font-weight: 800;
+            color: #000080;
+            font-size: 18px;
+        }
+
+        .brand-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .brand-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        .nav-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            background: #ecfdf5;
+            color: #065f46;
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid #a7f3d0;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1440px;
+            margin: 24px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 500px 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Card Styles */
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #fafafa;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* Tab Navigation */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            background: #f8fafc;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px 10px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .tab-btn.active {
+            color: var(--primary-dark);
+            border-bottom-color: var(--primary);
+            background: #ffffff;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* Upload Zone */
+        .dropzone {
+            border: 2px dashed #cbd5e1;
+            border-radius: 10px;
+            padding: 24px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #f8fafc;
+        }
+
+        .dropzone:hover, .dropzone.dragover {
+            border-color: var(--primary);
+            background: #fffaf0;
+        }
+
+        .dropzone-icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+        }
+
+        .dropzone-text {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 4px;
+        }
+
+        .dropzone-sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .preview-img-container {
+            margin-top: 12px;
+            display: none;
+            text-align: center;
+            position: relative;
+        }
+
+        .preview-img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: #ff9933;
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background: #e07d1a;
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: var(--dark);
+            border-color: #cbd5e1;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border-color: #cbd5e1;
+            color: var(--text-muted);
+        }
+
+        .btn-outline:hover {
+            background: #f8fafc;
+            color: var(--dark);
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 4px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            font-size: 0.88rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(255, 153, 51, 0.15);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        /* Verdict Banner */
+        .verdict-card {
+            border-radius: 10px;
+            padding: 18px 22px;
+            margin-bottom: 20px;
+            border: 1px solid;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .verdict-verified {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+            color: #065f46;
+        }
+
+        .verdict-partial {
+            background: #fffbeb;
+            border-color: #fde68a;
+            color: #92400e;
+        }
+
+        .verdict-rejected {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #991b1b;
+        }
+
+        .verdict-score {
+            font-size: 2.2rem;
+            font-weight: 800;
+        }
+
+        .verdict-info h3 {
+            font-size: 1.15rem;
+            margin-bottom: 4px;
+        }
+
+        .verdict-info p {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        /* Reconciliation Table */
+        .match-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+            margin-top: 12px;
+        }
+
+        .match-table th {
+            text-align: left;
+            padding: 10px 14px;
+            background: #f8fafc;
+            border-bottom: 2px solid var(--border);
+            font-weight: 700;
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+        }
+
+        .match-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        .match-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .badge-match {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .badge-partial {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
+
+        .badge-mismatch {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .badge-na {
+            background: #f1f5f9;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Aadhaar Visual Card */
+        .aadhaar-card-preview {
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .aadhaar-tricolor {
+            height: 6px;
+            background: linear-gradient(90deg, #ff9933 0%, #ff9933 33.3%, #ffffff 33.3%, #ffffff 66.6%, #138808 66.6%, #138808 100%);
+        }
+
+        .aadhaar-header {
+            padding: 12px 18px;
+            background: #ffffff;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .aadhaar-emblem {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #1e293b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            line-height: 1.3;
+        }
+
+        .aadhaar-emblem span {
+            color: #ff9933;
+        }
+
+        .aadhaar-logo-text {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #b91c1c;
+            letter-spacing: 1px;
+        }
+
+        .aadhaar-content {
+            padding: 18px;
+            display: grid;
+            grid-template-columns: 130px 1fr;
+            gap: 16px;
+        }
+
+        .aadhaar-photo {
+            width: 120px;
+            height: 145px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+        }
+
+        .aadhaar-no-photo {
+            width: 120px;
+            height: 145px;
+            border-radius: 6px;
+            border: 1px dashed #cbd5e1;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            padding: 8px;
+            text-align: center;
+        }
+
+        .aadhaar-name {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .aadhaar-field-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+
+        .aadhaar-field-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        .aadhaar-field-val {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .aadhaar-footer {
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            padding: 10px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .aadhaar-number {
+            font-family: monospace;
+            font-size: 1.15rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: #000080;
+        }
+
+        .debug-box {
+            background: #0f172a;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 14px;
+            font-family: monospace;
+            font-size: 0.78rem;
+            max-height: 220px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            line-height: 1.5;
+        }
+
+        /* Spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #ffffff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-placeholder {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .crop-qr-box {
+            text-align: center;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+        }
+
+        .crop-qr-img {
+            max-height: 140px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="navbar">
+        <div class="brand">
+            <div class="brand-badge">🇮🇳</div>
+            <div>
+                <div class="brand-title">PyAadhaar Suite</div>
+                <div class="brand-subtitle">UIDAI Aadhaar Card Full Document QR Extractor & Details Matcher</div>
+            </div>
+        </div>
+        <div class="nav-status">
+            <span class="status-dot"></span>
+            <span id="nav-port-status">Localhost Active</span>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="container">
+
+        <!-- Left Column: Inputs & Form -->
+        <section class="left-panel">
+            <div class="card">
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('doc-matcher-tab', this)">🪪 Full Aadhaar Card Matcher</button>
+                    <button class="tab-btn" onclick="switchTab('image-tab', this)">📷 QR Only</button>
+                    <button class="tab-btn" onclick="switchTab('text-tab', this)">📝 Raw Data</button>
+                    <button class="tab-btn" onclick="switchTab('xml-tab', this)">📦 Offline XML</button>
+                </div>
+
+                <div class="card-body">
+
+                    <!-- Tab 1: Full Aadhaar Card Matcher -->
+                    <div id="doc-matcher-tab" class="tab-pane active">
+                        <div class="dropzone" id="doc-dropzone" onclick="document.getElementById('doc-file-input').click()">
+                            <div class="dropzone-icon">🪪</div>
+                            <div class="dropzone-text">Upload Full Aadhaar Card Image</div>
+                            <div class="dropzone-sub">Front, Back, e-Aadhaar slip, or desk camera photo (JPG, PNG, WEBP)</div>
+                            <input type="file" id="doc-file-input" class="file-input" accept="image/*" onchange="handleDocFileSelect(event)">
+                        </div>
+
+                        <div id="doc-preview-container" class="preview-img-container">
+                            <img id="doc-image-preview" class="preview-img" alt="Aadhaar Card Preview">
+                        </div>
+
+                        <div class="btn-group">
+                            <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="loadDocDemo('aadhaar')">
+                                ⚡ Load Demo Full Aadhaar Card
+                            </button>
+                        </div>
+
+                        <div style="margin-top: 16px; border-top: 1px dashed var(--border); padding-top: 14px;">
+                            <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 8px; color: var(--dark);">
+                                Aadhaar Details to Match / Verify:
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Full Name *</label>
+                                <input type="text" id="match-name" class="form-control" placeholder="e.g. Arjun Verma">
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Date of Birth</label>
+                                    <input type="text" id="match-dob" class="form-control" placeholder="DD/MM/YYYY or YYYY-MM-DD">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Gender</label>
+                                    <select id="match-gender" class="form-control">
+                                        <option value="">Select...</option>
+                                        <option value="Male">Male / पुरुष</option>
+                                        <option value="Female">Female / महिला</option>
+                                        <option value="Transgender">Other / Transgender</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Aadhaar Number (12 digits or last 4 digits)</label>
+                                    <input type="text" id="match-id" class="form-control" placeholder="e.g. XXXX XXXX 5678 or full 12 digits">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Pincode</label>
+                                    <input type="text" id="match-pincode" class="form-control" placeholder="e.g. 110019">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Care Of / Father's / Husband's Name (Optional)</label>
+                                <input type="text" id="match-careof" class="form-control" placeholder="e.g. Ramesh Verma">
+                            </div>
+
+                            <button class="btn btn-primary btn-block" id="verify-doc-btn" onclick="runDocumentMatch()" style="margin-top: 8px;">
+                                🚀 Extract Aadhaar QR & Match Details
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: Single QR Image -->
+                    <div id="image-tab" class="tab-pane">
+                        <div class="dropzone" id="dropzone" onclick="document.getElementById('file-input').click()">
+                            <div class="dropzone-icon">📷</div>
+                            <div class="dropzone-text">Upload Isolated QR Image</div>
+                            <div class="dropzone-sub">Cropped QR code image</div>
+                            <input type="file" id="file-input" class="file-input" accept="image/*" onchange="handleFileSelect(event)">
+                        </div>
+
+                        <div id="preview-container" class="preview-img-container">
+                            <img id="image-preview" class="preview-img" alt="QR Preview">
+                            <div style="margin-top: 8px;">
+                                <button class="btn btn-primary btn-block" id="decode-img-btn" onclick="decodeUploadedImage()">
+                                    🔍 Decode QR Image
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="btn-group">
+                            <button class="btn btn-outline btn-sm" style="flex:1;" onclick="loadDemoImage()">
+                                ⚡ Load Sample QR Image
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tab 3: Raw Text -->
+                    <div id="text-tab" class="tab-pane">
+                        <div class="form-group">
+                            <label class="form-label">Aadhaar QR Big Integer or XML</label>
+                            <textarea id="raw-text-input" class="form-control" placeholder="Paste numeric digits or XML string here..."></textarea>
+                        </div>
+                        <button class="btn btn-primary btn-block" id="decode-text-btn" onclick="decodeRawText()">
+                            🔍 Decode Raw Data
+                        </button>
+                        <div class="btn-group">
+                            <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="loadSampleText('secure-qr')">
+                                ⚡ Sample Secure QR
+                            </button>
+                            <button class="btn btn-outline btn-sm" style="flex:1;" onclick="loadSampleText('old-qr')">
+                                ⚡ Sample Old XML QR
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tab 4: Offline XML -->
+                    <div id="xml-tab" class="tab-pane">
+                        <div class="form-group">
+                            <label class="form-label">Offline e-KYC ZIP Archive</label>
+                            <input type="file" id="xml-zip-input" class="form-control" accept=".zip">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">4-Digit Passcode</label>
+                            <input type="password" id="xml-passcode" class="form-control" placeholder="e.g. 1234" maxlength="4">
+                        </div>
+                        <button class="btn btn-primary btn-block" id="decode-xml-btn" onclick="decodeOfflineXml()">
+                            🔍 Decrypt & Decode XML
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Results & Reconciliation -->
+        <section class="right-panel">
+
+            <!-- Empty State -->
+            <div id="empty-state" class="card">
+                <div class="empty-placeholder">
+                    <div class="empty-icon">🪪</div>
+                    <h3>Aadhaar Card Verification Ready</h3>
+                    <p style="margin-top: 6px; font-size: 0.9rem;">
+                        Upload a photo of an Aadhaar card (front or back), or click <a href="javascript:void(0)" onclick="loadDocDemo('aadhaar')" style="color:var(--primary); font-weight:600;">Load Demo Full Aadhaar Card</a> to test extraction & matching immediately.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Reconciliation Match Results View -->
+            <div id="match-results-card" style="display: none;">
+                <!-- Verdict Banner -->
+                <div class="verdict-card" id="verdict-banner">
+                    <div class="verdict-info">
+                        <h3 id="verdict-title">Verification Result</h3>
+                        <p id="verdict-summary">-</p>
+                    </div>
+                    <div class="verdict-score" id="verdict-score">100%</div>
+                </div>
+
+                <!-- Cropped QR Preview (if extracted from document) -->
+                <div class="crop-qr-box" id="cropped-qr-container" style="display: none;">
+                    <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">
+                        📍 QR Code Isolated from Document:
+                    </div>
+                    <img id="cropped-qr-preview" class="crop-qr-img" alt="Isolated QR">
+                </div>
+
+                <!-- Field By Field Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">⚖️ Field-by-Field Reconciliation</div>
+                        <span id="detected-doctype-pill" style="font-size:0.75rem; font-weight:700; background:#e0f2fe; color:#0369a1; padding:4px 10px; border-radius:12px;">AADHAAR</span>
+                    </div>
+                    <div class="card-body" style="padding:0;">
+                        <table class="match-table">
+                            <thead>
+                                <tr>
+                                    <th>Field</th>
+                                    <th>Filled in Form</th>
+                                    <th>Decoded from QR</th>
+                                    <th>Match Status</th>
+                                    <th>Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="match-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Extraction Pipeline Logs -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🔬 Document QR Locator Logs</div>
+                        <span id="processing-time-badge" style="font-size:0.75rem; color:var(--text-muted);">0 ms</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="debug-box" id="extract-logs-box">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Standard Decoded Card View (Used when Single QR/Text is decoded) -->
+            <div id="aadhaar-result-card" style="display: none;">
+                <div class="aadhaar-card-preview">
+                    <div class="aadhaar-tricolor"></div>
+                    <div class="aadhaar-header">
+                        <div class="aadhaar-emblem">
+                            भारत सरकार<br>
+                            <span>GOVERNMENT OF INDIA</span>
+                        </div>
+                        <div class="aadhaar-logo-text">आधार</div>
+                    </div>
+
+                    <div class="aadhaar-content">
+                        <div class="aadhaar-photo-box">
+                            <div id="photo-wrapper">
+                                <div class="aadhaar-no-photo"><span>No Photo</span></div>
+                            </div>
+                            <div style="margin-top: 8px;" id="photo-dl-btn-container"></div>
+                        </div>
+
+                        <div class="aadhaar-details">
+                            <div class="aadhaar-name" id="card-name">-</div>
+                            <div class="aadhaar-field-group">
+                                <div class="aadhaar-field">
+                                    <div class="aadhaar-field-label">DOB / जन्म तिथि</div>
+                                    <div class="aadhaar-field-val" id="card-dob">-</div>
+                                </div>
+                                <div class="aadhaar-field">
+                                    <div class="aadhaar-field-label">Gender / लिंग</div>
+                                    <div class="aadhaar-field-val" id="card-gender">-</div>
+                                </div>
+                                <div class="aadhaar-field">
+                                    <div class="aadhaar-field-label">Email Status</div>
+                                    <div class="aadhaar-field-val" id="card-email-status">-</div>
+                                </div>
+                                <div class="aadhaar-field">
+                                    <div class="aadhaar-field-label">Mobile Status</div>
+                                    <div class="aadhaar-field-val" id="card-mobile-status">-</div>
+                                </div>
+                            </div>
+
+                            <div class="aadhaar-field" style="margin-top: 6px;" id="card-careof-container">
+                                <div class="aadhaar-field-label">Care Of / संबंध</div>
+                                <div class="aadhaar-field-val" id="card-careof">-</div>
+                            </div>
+
+                            <div style="margin-top: 6px; font-size: 0.85rem; color: #334155; line-height: 1.4;">
+                                <div class="aadhaar-field-label">Address / पता</div>
+                                <div id="card-address" style="margin-top: 2px;">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="aadhaar-footer">
+                        <div class="aadhaar-number" id="card-aadhaar-number">XXXX XXXX ----</div>
+                        <span class="aadhaar-type-pill" id="card-type-pill">Secure QR</span>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <script>
+        if (window.location.port) {
+            document.getElementById('nav-port-status').textContent = `Localhost Active (Port ${window.location.port})`;
+        }
+
+        let docBlob = null;
+
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        // Document Matcher File Select
+        function handleDocFileSelect(e) {
+            if (e.target.files && e.target.files[0]) {
+                const file = e.target.files[0];
+                docBlob = file;
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    document.getElementById('doc-image-preview').src = evt.target.result;
+                    document.getElementById('doc-preview-container').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Run Document QR Extractor & Matcher
+        async function runDocumentMatch() {
+            if (!docBlob) {
+                alert("Please upload a full Aadhaar card image first.");
+                return;
+            }
+
+            const name = document.getElementById('match-name').value.trim();
+            if (!name) {
+                alert("Please enter the Full Name to match.");
+                return;
+            }
+
+            const btn = document.getElementById('verify-doc-btn');
+            btn.innerHTML = '<span class="spinner"></span> Locating QR & Matching...';
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('file', docBlob);
+            formData.append('name', name);
+            formData.append('dob', document.getElementById('match-dob').value.trim());
+            formData.append('gender', document.getElementById('match-gender').value.trim());
+            formData.append('id_number', document.getElementById('match-id').value.trim());
+            formData.append('care_of', document.getElementById('match-careof').value.trim());
+            formData.append('pincode', document.getElementById('match-pincode').value.trim());
+
+            try {
+                const res = await fetch('/api/verify-document', { method: 'POST', body: formData });
+                const json = await res.json();
+                if (json.success && json.report) {
+                    renderMatchReport(json.report);
+                } else {
+                    alert("Error: " + (json.error || "Failed to process document"));
+                    if (json.extract_logs) {
+                        document.getElementById('empty-state').style.display = 'none';
+                        document.getElementById('match-results-card').style.display = 'block';
+                        document.getElementById('extract-logs-box').textContent = json.extract_logs.join('\n');
+                    }
+                }
+            } catch (err) {
+                alert("Network error: " + err.message);
+            } finally {
+                btn.innerHTML = '🚀 Extract QR from Document & Match Details';
+                btn.disabled = false;
+            }
+        }
+
+        function renderMatchReport(report) {
+            document.getElementById('empty-state').style.display = 'none';
+            document.getElementById('aadhaar-result-card').style.display = 'none';
+            document.getElementById('match-results-card').style.display = 'block';
+
+            // Verdict Banner
+            const banner = document.getElementById('verdict-banner');
+            banner.className = 'verdict-card ' + (report.verdict === 'VERIFIED' ? 'verdict-verified' : (report.verdict === 'PARTIAL_MATCH' ? 'verdict-partial' : 'verdict-rejected'));
+            document.getElementById('verdict-title').textContent = report.verdict_badge;
+            document.getElementById('verdict-summary').textContent = report.summary;
+            document.getElementById('verdict-score').textContent = `${report.overall_score}%`;
+
+            // Doc type pill
+            document.getElementById('detected-doctype-pill').textContent = report.doc_type;
+            document.getElementById('processing-time-badge').textContent = `${report.processing_time_ms} ms`;
+
+            // Cropped QR
+            const cropContainer = document.getElementById('cropped-qr-container');
+            if (report.qr_cropped_base64) {
+                cropContainer.style.display = 'block';
+                document.getElementById('cropped-qr-preview').src = report.qr_cropped_base64;
+            } else {
+                cropContainer.style.display = 'none';
+            }
+
+            // Table rows
+            const tbody = document.getElementById('match-table-body');
+            tbody.innerHTML = '';
+
+            const evals = report.field_evaluations || {};
+            for (const [key, ev] of Object.entries(evals)) {
+                const tr = document.createElement('tr');
+
+                let badgeClass = 'badge-match';
+                let icon = '✓';
+                if (ev.status === 'MISMATCH') { badgeClass = 'badge-mismatch'; icon = '✗'; }
+                else if (ev.status === 'PARTIAL_MATCH') { badgeClass = 'badge-partial'; icon = '≈'; }
+                else if (ev.status === 'NOT_IN_QR') { badgeClass = 'badge-na'; icon = '—'; }
+
+                tr.innerHTML = `
+                    <td style="font-weight:600;">${ev.label}</td>
+                    <td>${ev.filled || '<span style="color:#94a3b8">None</span>'}</td>
+                    <td><strong>${ev.qr_value || '<span style="color:#94a3b8">N/A</span>'}</strong></td>
+                    <td><span class="match-badge ${badgeClass}">${icon} ${ev.status}</span></td>
+                    <td><strong style="color:var(--dark);">${ev.score}%</strong></td>
+                `;
+                tbody.appendChild(tr);
+            }
+
+            // Extraction logs
+            document.getElementById('extract-logs-box').textContent = (report.extract_logs || []).join('\n');
+            document.getElementById('match-results-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // Demo loader for full Aadhaar card
+        async function loadDocDemo(type) {
+            try {
+                document.getElementById('match-name').value = 'Arjun Verma';
+                document.getElementById('match-dob').value = '12/04/1992';
+                document.getElementById('match-gender').value = 'Male';
+                document.getElementById('match-id').value = 'XXXX XXXX 5678';
+                document.getElementById('match-pincode').value = '110019';
+                document.getElementById('match-careof').value = 'Ramesh Verma';
+
+                const res = await fetch(`/api/sample-document/aadhaar`);
+                const blob = await res.blob();
+                docBlob = blob;
+
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    document.getElementById('doc-image-preview').src = evt.target.result;
+                    document.getElementById('doc-preview-container').style.display = 'block';
+                };
+                reader.readAsDataURL(blob);
+
+                // Auto-run verification
+                setTimeout(runDocumentMatch, 300);
+            } catch (err) {
+                alert("Failed to load demo Aadhaar card: " + err.message);
+            }
+        }
+
+        // Single QR Image Handling
+        function handleFileSelect(e) {
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    document.getElementById('image-preview').src = evt.target.result;
+                    document.getElementById('preview-container').style.display = 'block';
+                };
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        }
+
+        async function decodeUploadedImage() {
+            const fileInput = document.getElementById('file-input');
+            if (!fileInput.files || !fileInput.files[0]) {
+                alert("Please select an image file first.");
+                return;
+            }
+
+            const btn = document.getElementById('decode-img-btn');
+            btn.innerHTML = '<span class="spinner"></span> Scanning...';
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const res = await fetch('/api/decode-image', { method: 'POST', body: formData });
+                const json = await res.json();
+                if (json.success) {
+                    renderDecodedCard(json.data);
+                } else {
+                    alert("Error: " + (json.error || "Failed to decode"));
+                }
+            } catch (err) {
+                alert("Network error: " + err.message);
+            } finally {
+                btn.innerHTML = '🔍 Decode QR Image';
+                btn.disabled = false;
+            }
+        }
+
+        async function decodeRawText() {
+            const text = document.getElementById('raw-text-input').value.trim();
+            if (!text) { alert("Please paste data first."); return; }
+
+            const res = await fetch('/api/decode-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+            const json = await res.json();
+            if (json.success) renderDecodedCard(json.data);
+            else alert("Error: " + json.error);
+        }
+
+        async function decodeOfflineXml() {
+            const fileInput = document.getElementById('xml-zip-input');
+            const passcode = document.getElementById('xml-passcode').value.trim();
+            if (!fileInput.files || !fileInput.files[0] || !passcode) {
+                alert("Provide zip file and 4-digit passcode.");
+                return;
+            }
+            const fd = new FormData();
+            fd.append('file', fileInput.files[0]);
+            fd.append('passcode', passcode);
+
+            const res = await fetch('/api/decode-xml', { method: 'POST', body: fd });
+            const json = await res.json();
+            if (json.success) renderDecodedCard(json.data);
+            else alert("Error: " + json.error);
+        }
+
+        function renderDecodedCard(data) {
+            document.getElementById('empty-state').style.display = 'none';
+            document.getElementById('match-results-card').style.display = 'none';
+            document.getElementById('aadhaar-result-card').style.display = 'block';
+
+            const f = data.fields || {};
+            document.getElementById('card-name').textContent = f.name || '-';
+            document.getElementById('card-dob').textContent = f.dob || f.yob || '-';
+            document.getElementById('card-gender').textContent = f.gender || '-';
+            document.getElementById('card-aadhaar-number').textContent = `XXXX XXXX ${f.aadhaar_last_4_digit || (f.uid ? f.uid.slice(-4) : '----')}`;
+            document.getElementById('card-type-pill').textContent = data.format_type;
+
+            const addrParts = [];
+            ['house', 'street', 'landmark', 'location', 'vtc', 'district', 'state', 'pincode'].forEach(k => {
+                if (f[k] && f[k] !== '-') addrParts.push(f[k]);
+            });
+            document.getElementById('card-address').textContent = addrParts.join(', ') || 'No address';
+
+            const photoWrapper = document.getElementById('photo-wrapper');
+            if (data.photo_base64) {
+                photoWrapper.innerHTML = `<img src="${data.photo_base64}" class="aadhaar-photo">`;
+            } else {
+                photoWrapper.innerHTML = `<div class="aadhaar-no-photo"><span>No Photo</span></div>`;
+            }
+            document.getElementById('aadhaar-result-card').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function loadSampleText(type) {
+            const res = await fetch(`/api/sample/${type}`);
+            const json = await res.json();
+            if (json.success) {
+                document.getElementById('raw-text-input').value = json.raw_text;
+                decodeRawText();
+            }
+        }
+
+        async function loadDemoImage() {
+            const res = await fetch('/api/sample/qr-image');
+            const blob = await res.blob();
+            const dt = new DataTransfer();
+            dt.items.add(new File([blob], 'sample.png', { type: 'image/png' }));
+            document.getElementById('file-input').files = dt.files;
+            handleFileSelect({ target: { files: dt.files } });
+            decodeUploadedImage();
+        }
+    </script>
+</body>
+</html>
